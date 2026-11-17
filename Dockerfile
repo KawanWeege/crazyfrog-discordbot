@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # ffmpeg plays the audio file, libopus encodes it for Discord voice
 RUN apt-get update \
