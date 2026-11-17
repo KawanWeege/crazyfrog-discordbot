@@ -8,6 +8,10 @@ class AudioPlayer:
         pass
 
     async def audio_player(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        # Our own joins/leaves are handled by discord.py; reacting to them starts competing connections
+        if member.id == member.guild.me.id:
+            return
+
         channel = None
         if before.channel is not None:
             channel = before.channel
@@ -47,11 +51,15 @@ class AudioPlayer:
             def play_audio():
                 audio_source = discord.FFmpegPCMAudio(self.audio_file)
                 def after_play_audio(e):
-                    if e is None:
-                        self.logger.info("Looping Music")
-                        audio_source.cleanup()
-                        play_audio()
-                    else:
+                    audio_source.cleanup()
+                    if e is not None:
                         self.logger.error('Player error: %s' % e)
+                        return
+                    voice_client = channel.guild.voice_client
+                    if voice_client is None or not voice_client.is_connected():
+                        self.logger.debug("Not looping music because we're disconnected")
+                        return
+                    self.logger.info("Looping Music")
+                    play_audio()
                 channel.guild.voice_client.play(audio_source, after=after_play_audio)
             play_audio()
